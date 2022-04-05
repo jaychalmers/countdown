@@ -13,6 +13,7 @@ namespace Minnoq.Countdown
     public class Countdown
     {
         private readonly DateTime WeddingDate = new DateTime(2023, 08, 08, 14, 0, 0); //doublee check this is correct time
+        private readonly DateTime MonikaBirthday = new DateTime(2022, 04, 07);
 
         [FunctionName("Countdown")]
         public void Run([TimerTrigger("0 0 7 * * *")]TimerInfo myTimer, ILogger log)
@@ -22,19 +23,30 @@ namespace Minnoq.Countdown
             string fromNumber = Environment.GetEnvironmentVariable("NUMBER_FROM");
             string jayNumber = Environment.GetEnvironmentVariable("NUMBER_JAY");
             string monNumber = Environment.GetEnvironmentVariable("NUMBER_MON");
+            string tomNumber = Environment.GetEnvironmentVariable("NUMBER_TOM");
 
             var recipients = new List<string>
             {
+                ShouldSendToMon() ? monNumber : null,
                 jayNumber
             };
 
             TwilioClient.Init(accountSid, authToken);
 
-            var message = MessageResource.Create(
-                body: GetBody(),
-                from: new Twilio.Types.PhoneNumber(fromNumber),
-                to: new Twilio.Types.PhoneNumber(jayNumber)
-            );
+            foreach(var recipient in recipients){
+                if (recipient != null){
+                    var message = MessageResource.Create(
+                        body: GetBody(),
+                        from: new Twilio.Types.PhoneNumber(fromNumber),
+                        to: new Twilio.Types.PhoneNumber(recipient)
+                    );
+                }
+            }
+        }
+
+        private bool ShouldSendToMon()
+        {
+            return DateTime.Now > MonikaBirthday && Boolean.Parse(Environment.GetEnvironmentVariable("MONIKA_ENABLED"));
         }
 
         private string GetBody()
@@ -52,11 +64,6 @@ namespace Minnoq.Countdown
             sb.Append(" ");
 
             sb.Append(RandomGreeting());
-
-            if (DateTime.Now > new DateTime(2022,04,01))
-            {
-                sb.Append(" You should see this first on April 1");
-            }
 
             return sb.ToString();
         }
